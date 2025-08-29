@@ -1,2 +1,4 @@
-chromadb
-python-dotenv
+chromadb>=1.0.20
+dotenv
+langchain-chroma>=0.2.5
+langchain-groq
