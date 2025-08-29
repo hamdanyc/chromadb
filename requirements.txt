@@ -3,3 +3,4 @@ dotenv
 langchain-chroma>=0.2.5
 langchain-groq
 pysqlite3-binary
+streamlit
