@@ -5,3 +5,4 @@ langchain-groq
 langchain
 langchain-core
 streamlit
+sqlite3 >= 3.35.0
