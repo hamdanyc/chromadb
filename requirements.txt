@@ -5,3 +5,4 @@ langchain-groq
 langchain
 langchain-core
 streamlit
+pysqlite3-binary
