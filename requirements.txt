@@ -2,5 +2,5 @@ chromadb>=1.0.20
 dotenv
 langchain-chroma>=0.2.5
 langchain-groq
-pysqlite3-binary
-streamlit
+langchain
+langchain-core
