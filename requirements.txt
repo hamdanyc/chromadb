@@ -4,3 +4,4 @@ langchain-chroma>=0.2.5
 langchain-groq
 langchain
 langchain-core
+streamlit
