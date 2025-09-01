@@ -16,6 +16,7 @@ llm = init_chat_model("llama-3.1-8b-instant", model_provider="groq")
 
 ef = chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
 
+# Not run
 class DefChromaEF(Embeddings):
   def __init__(self,ef):
     self.ef = ef
@@ -36,8 +37,7 @@ def extract_metadata(collection):
     page = col.get(ids=["0"])
     return page["documents"][0][:577]
     
-# Get list of collections from ChromaDB
-# client = chromadb.PersistentClient(path="../chromadb")
+# Get list of collections from ChromaDB cloud
 # Accessing .env
 ch_api_key = os.getenv('CHROMA_API_KEY')
 ch_tenant = os.getenv('CHROMA_TENANT')
@@ -72,7 +72,7 @@ selected_collection = st.sidebar.selectbox("Select a collection", pdf)
 selected_qs = st.sidebar.selectbox("Select a question", qs)
 st.write(selected_collection)
 
-db = Chroma(client=client, collection_name=selected_collection, embedding_function=DefChromaEF(ef))
+db = Chroma(client=client, collection_name=selected_collection)
 retriever = db.as_retriever()
 
 template = """<bos><start_of_turn>user\nAnswer the question based only on the following context and extract out a meaningful answer. \
