@@ -71,8 +71,6 @@ mt = ""
 selected_collection = st.sidebar.selectbox("Select a collection", pdf)
 selected_qs = st.sidebar.selectbox("Select a question", qs)
 st.write(selected_collection)
-mt = extract_metadata(selected_collection)
-st.write(mt,"...")
 
 db = Chroma(client=client, collection_name=selected_collection, embedding_function=DefChromaEF(ef))
 retriever = db.as_retriever()
