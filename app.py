@@ -103,7 +103,6 @@ def ask_question(question):
     response_placeholder = st.empty()
     for r in rag_chain.stream(question):
         response += r.content
-        response_placeholder.write(response)
     return response
 
 if __name__ == "__main__":
