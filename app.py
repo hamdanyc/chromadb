@@ -61,6 +61,7 @@ qs = ["Summarize the text",
       "What are the gaps in knowledge or inconsistencies in the text?",
       "What are the problem statements mentioned in the text?",
       "What are the limitations mentioned in the text?",
+      "What are the factors that influence students' attitudes towards ChatGPT?",
       "Give theoretical research framework from the text",
       "Highlight important previous studies that related to the text"]
 
