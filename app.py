@@ -79,6 +79,28 @@ retriever = db.as_retriever()
 
 template = """<bos><start_of_turn>user\nAnswer the question based only on the following context and extract out a meaningful answer. \
 Please write in full sentences with correct spelling and punctuation. if it makes sense use lists. \
+Use the JSON format as given if required \
+{
+  "theme": "Effect of ChatGPT-based project-based learning model on news text writing skills",
+  "main_findings": [
+    {
+      "heading": "Effect of ChatGPT-based project-based learning model",
+      "description": "The study found that using the ChatGPT-based project-based learning model greatly enhances the capacity to produce news articles."
+    },
+    {
+      "heading": "Interaction between ChatGPT-based project-based learning model and digital literacy",
+      "description": "There is no interaction between the ChatGPT-based project-based learning model and digital literacy in influencing the capacity to create news material."
+    },
+    {
+      "heading": "Digital literacy's impact on news text writing skills",
+      "description": "Digital literacy does not have a significant impact on news text writing skills when used in conjunction with the ChatGPT-based project-based learning model."
+    },
+    {
+      "heading": "Significance of comprehensive strategy for fostering news text writing abilities",
+      "description": "The study emphasizes the significance of a comprehensive strategy for fostering students' news text writing abilities."
+    }
+  ]
+}
 If the context doesn't contain the answer, just respond that you are unable to find an answer. \
 
 CONTEXT: {context}
