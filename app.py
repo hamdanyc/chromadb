@@ -53,6 +53,7 @@ client = chromadb.CloudClient(
 collections = client.list_collections()
 pdf = [collection.name for collection in collections]
 qs = ["Summarize the text",
+      "Summarize the text. Identify main theme of the text and the key findings and list theme and finding as a JSON format",
       "Give the abstract from the article",
       "What data analysis mentioned in the text",
       "What has been studied on this topic?",
