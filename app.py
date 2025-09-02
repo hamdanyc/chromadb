@@ -79,6 +79,36 @@ retriever = db.as_retriever()
 
 template = """<bos><start_of_turn>user\nAnswer the question based only on the following context and extract out a meaningful answer. \
 Please write in full sentences with correct spelling and punctuation. if it makes sense use lists. \
+When ask for JSON format, use the example given \
+    {{ \
+    "mindmap": {{ \
+        "root": {{ \
+        "id": "mainIdea", \
+        "label": "Central Idea", \
+        "children": [ \
+            {{ \
+            "id": "subIdea1", \
+            "label": "Sub-Idea 1", \
+            "children": [ \
+                {{ \
+                "id": "detail1a", \
+                "label": "Detail 1a"
+                }}, \
+                {{ \
+                "id": "detail1b", \
+                "label": "Detail 1b" \
+                }} \
+            ] \
+            }}, \
+            {{ \
+            "id": "subIdea2", \
+            "label": "Sub-Idea 2", \
+            "description": "More information about Sub-Idea 2" \
+            }} \
+        ] \
+        }} \
+    }} \
+    }} \
 If the context doesn't contain the answer, just respond that you are unable to find an answer. \
 
 CONTEXT: {context}
