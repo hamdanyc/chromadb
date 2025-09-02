@@ -53,7 +53,21 @@ client = chromadb.CloudClient(
 collections = client.list_collections()
 pdf = [collection.name for collection in collections]
 qs = ["Summarize the text",
-      "Summarize the text. Identify main theme of the text and the key findings and list theme and finding as a JSON format",
+      "Summarize the text. Identify main theme of the text and the key findings and list theme and finding as a JSON format.\
+      use this JSON format \
+      {
+        "theme": "Effect of ChatGPT-based project-based learning model on news text writing skills",
+        "main_findings": [
+          {
+            "heading": "Effect of ChatGPT-based project-based learning model",
+            "description": "The study found that using the ChatGPT-based project-based learning model greatly enhances the capacity to produce news articles."
+          },
+          {
+            "heading": "Interaction between ChatGPT-based project-based learning model and digital literacy",
+            "description": "There is no interaction between the ChatGPT-based project-based learning model and digital literacy in influencing the capacity to create news material."
+          }
+        ]
+      }",
       "Give the abstract from the article",
       "What data analysis mentioned in the text",
       "What has been studied on this topic?",
