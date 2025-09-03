@@ -16,7 +16,6 @@ llm = init_chat_model("llama-3.1-8b-instant", model_provider="groq")
 
 ef = chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
 
-# Not run
 class DefChromaEF(Embeddings):
   def __init__(self,ef):
     self.ef = ef
@@ -28,16 +27,44 @@ class DefChromaEF(Embeddings):
     return self.ef([query])[0]
 
 def extract_metadata(collection):
-       
-    # Get the first n embeddings from the collection
     col = client.get_or_create_collection(collection)
+    # Get metadata fields we need
+    metadata = {
+        "Year": "",
+        "Title": "",
+        "Author": "",
+        "Publication": "",
+        "Publisher": ""
+    }
     
-    # Extract the text from the embeddings
-    # page = col.query(query_texts=["Abstract"])
-    page = col.get(ids=["0"])
-    return page["documents"][0][:577]
+    # Debugging - Show collection info
+    # st.write(f"Collection name: {collection}")
+    # st.write(f"Collection metadata: {col.metadata}")
     
-# Get list of collections from ChromaDB cloud
+    # Get first document that has metadata
+    results = col.get(where={"page_number": 1})
+    # st.write(f"Metadata query results: {results}")  # Debugging output
+    
+    if results["metadatas"]:
+        # Extract metadata from first document with metadata
+        doc_metadata = results["metadatas"][0]
+        # st.write(f"Raw metadata document: {doc_metadata}")  # Debugging output
+        
+        try:
+            # Directly assign from the metadata dictionary
+            metadata["Title"] = doc_metadata.get("Title", "")
+            metadata["Author"] = doc_metadata.get("Author", "")
+            metadata["Publication"] = doc_metadata.get("Publication", "")
+            metadata["Year"] = doc_metadata.get("Year", "")
+            metadata["Publisher"] = doc_metadata.get("Publisher", "")
+        except Exception as e:
+            st.error(f"Error parsing metadata: {e}")
+            print(f"Error parsing metadata: {e}")
+    
+    return metadata
+    
+# Get list of collections from ChromaDB
+# client = chromadb.PersistentClient(path="../chromadb")
 # Accessing .env
 ch_api_key = os.getenv('CHROMA_API_KEY')
 ch_tenant = os.getenv('CHROMA_TENANT')
@@ -53,8 +80,6 @@ client = chromadb.CloudClient(
 collections = client.list_collections()
 pdf = [collection.name for collection in collections]
 qs = ["Summarize the text",
-      "Summarize the text. Identify main theme of the text and the key findings and list theme and finding as a JSON format",
-      "What is the title, year of publication and author(s) of the text",
       "Give the abstract from the article",
       "What data analysis mentioned in the text",
       "What has been studied on this topic?",
@@ -63,7 +88,6 @@ qs = ["Summarize the text",
       "What are the gaps in knowledge or inconsistencies in the text?",
       "What are the problem statements mentioned in the text?",
       "What are the limitations mentioned in the text?",
-      "What are the factors that influence students' attitudes towards ChatGPT?",
       "Give theoretical research framework from the text",
       "Highlight important previous studies that related to the text"]
 
@@ -73,9 +97,19 @@ st.title("Knowledge Base")
 mt = ""
 selected_collection = st.sidebar.selectbox("Select a collection", pdf)
 selected_qs = st.sidebar.selectbox("Select a question", qs)
-st.write(selected_collection)
+# st.write(selected_collection)
 
-db = Chroma(client=client, collection_name=selected_collection)
+# Extract and display metadata
+metadata = extract_metadata(selected_collection)
+
+st.subheader("Document Metadata")
+st.text(f"Title: {metadata['Title']}")
+st.text(f"Author(s): {metadata['Author']}")
+st.text(f"Publication: {metadata['Publication']}")
+st.text(f"Year: {metadata['Year']}")
+st.text(f"Publisher: {metadata['Publisher']}")
+
+db = Chroma(client=client, collection_name=selected_collection, embedding_function=DefChromaEF(ef))
 retriever = db.as_retriever()
 
 template = """<bos><start_of_turn>user\nAnswer the question based only on the following context and extract out a meaningful answer. \
@@ -131,7 +165,7 @@ rag_chain = (
 
 def ask_question(question):
     response = ""
-    response_placeholder = st.empty()
+
     for r in rag_chain.stream(question):
         response += r.content
     return response
