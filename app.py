@@ -35,7 +35,8 @@ def extract_metadata(collection):
         "Title": "",
         "Author": "",
         "Publication": "",
-        "Publisher": ""
+        "Publisher": "",
+        "Abstract": ""
     }
     
     # Debugging - Show collection info
@@ -58,6 +59,7 @@ def extract_metadata(collection):
             metadata["Publication"] = doc_metadata.get("Publication", "")
             metadata["Year"] = doc_metadata.get("Year", "")
             metadata["Publisher"] = doc_metadata.get("Publisher", "")
+            metadata["Abstract"] = doc_metadata.get("Abstract", "")
         except Exception as e:
             st.error(f"Error parsing metadata: {e}")
             print(f"Error parsing metadata: {e}")
@@ -109,6 +111,7 @@ st.text(f"Author(s): {metadata['Author']}")
 st.text(f"Publication: {metadata['Publication']}")
 st.text(f"Year: {metadata['Year']}")
 st.text(f"Publisher: {metadata['Publisher']}")
+st.text(f"Abstract: {metadata['Abstract']}")
 
 db = Chroma(client=client, collection_name=selected_collection, embedding_function=DefChromaEF(ef))
 retriever = db.as_retriever()
