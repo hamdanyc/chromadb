@@ -4,6 +4,7 @@ from langchain_chroma import Chroma
 from langchain.chat_models import init_chat_model
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.embeddings import Embeddings
 from dotenv import load_dotenv
 import streamlit as st
@@ -114,37 +115,27 @@ retriever = db.as_retriever()
 
 template = """<bos><start_of_turn>user\nAnswer the question based only on the following context and extract out a meaningful answer. \
 Please write in full sentences with correct spelling and punctuation. if it makes sense use lists. \
-When ask for JSON format, use the example given \
-    {{ \
-    "mindmap": {{ \
-        "root": {{ \
-        "id": "mainIdea", \
-        "label": "Central Idea", \
-        "children": [ \
-            {{ \
-            "id": "subIdea1", \
-            "label": "Sub-Idea 1", \
-            "children": [ \
-                {{ \
-                "id": "detail1a", \
-                "label": "Detail 1a"
-                }}, \
-                {{ \
-                "id": "detail1b", \
-                "label": "Detail 1b" \
-                }} \
-            ] \
-            }}, \
-            {{ \
-            "id": "subIdea2", \
-            "label": "Sub-Idea 2", \
-            "description": "More information about Sub-Idea 2" \
-            }} \
-        ] \
-        }} \
-    }} \
-    }} \
-If the context doesn't contain the answer, just respond that you are unable to find an answer. \
+When ask for mindmap's XML format, use the example given \
+ <map version="1.0.1">
+    <!-- Root node of the mind map -->
+    <node TEXT="Main Topic" ID="ID_1" CREATED="1672531200000" MODIFIED="1672531200000" POSITION="left">
+        <!-- First child node -->
+        <node TEXT="Child Topic 1" ID="ID_2" CREATED="1672531200000" MODIFIED="1672531200000" POSITION="right" FOLDED="false">
+            <!-- Grandchild node -->
+            <node TEXT="Detail A" ID="ID_3" CREATED="1672531200000" MODIFIED="1672531200000">
+                <hook NAME="accessories/plugins/Automatic_Backup.properties" ACTIVE="false"/>
+            </node>
+            <!-- Another grandchild node with a link -->
+            <node TEXT="Detail B" ID="ID_4" LINK="https://example.com" CREATED="1672531200000" MODIFIED="1672531200000">
+                <!-- A note attached to the node -->
+                <richcontent TYPE="NOTE"><html><head><style type="text/css">p{{margin-top:0;margin-bottom:0;}}</style></head><body><p>This is a note for Detail B.</p></body></html></richcontent>
+            </node>
+        </node>
+        <!-- Second child node -->
+        <node TEXT="Child Topic 2" ID="ID_5" CREATED="1672531200000" MODIFIED="1672531200000" POSITION="right" FOLDED="false"/>
+    </node>
+</map> 
+If the context doesn't contain the answer, just respond that you are unable to find an answer.
 
 CONTEXT: {context}
 
@@ -156,18 +147,22 @@ ANSWER:"""
 
 prompt = ChatPromptTemplate.from_template(template)
 
+# Fix for the prompt - ensure the output format matches what the model expects
+# We'll add a specific output parser to handle the streaming response
+
+
 rag_chain = (
     {"context": retriever, "question": RunnablePassthrough()}
     | prompt
     | llm
+    | StrOutputParser()
 )
-
 
 def ask_question(question):
     response = ""
 
     for r in rag_chain.stream(question):
-        response += r.content
+        response += r
     return response
 
 if __name__ == "__main__":
