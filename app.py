@@ -83,7 +83,6 @@ client = chromadb.CloudClient(
 collections = client.list_collections()
 pdf = [collection.name for collection in collections]
 qs = ["Summarize the text",
-      "Give the abstract from the article",
       "What data analysis mentioned in the text",
       "What has been studied on this topic?",
       "What are the key findings and conclusions from the text", 
@@ -152,7 +151,6 @@ prompt = ChatPromptTemplate.from_template(template)
 
 # Fix for the prompt - ensure the output format matches what the model expects
 # We'll add a specific output parser to handle the streaming response
-
 
 rag_chain = (
     {"context": retriever, "question": RunnablePassthrough()}
