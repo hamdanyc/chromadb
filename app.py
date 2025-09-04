@@ -13,7 +13,7 @@ import os
 
 load_dotenv()
 os.environ["GROQ_API_KEY"] = os.environ.get('GROQ_API_KEY')
-llm = init_chat_model("llama-3.1-8b-instant", model_provider="groq")
+llm = init_chat_model("llama-3.1-8b-instant", model_provider="groq", temperature=0.3)
 
 ef = chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
 
@@ -117,8 +117,10 @@ retriever = db.as_retriever()
 
 template = """<bos><start_of_turn>user\nAnswer the question based only on the following context and extract out a meaningful answer. \
 Please write in full sentences with correct spelling and punctuation. if it makes sense use lists. \
-When ask for mindmap's XML format, use the example given \
- <map version="1.0.1">
+When ask for mindmap's, use the XML format given in the example. Attach TYPE="NOTE" to the mindmap's root and the siblings node with the short description.\
+Write to the richcontent attribute explaining the context of the elements. \
+
+<map version="1.0.1">
     <!-- Root node of the mind map -->
     <node TEXT="Main Topic" ID="ID_1" CREATED="1672531200000" MODIFIED="1672531200000" POSITION="left">
         <!-- First child node -->
@@ -130,7 +132,7 @@ When ask for mindmap's XML format, use the example given \
             <!-- Another grandchild node with a link -->
             <node TEXT="Detail B" ID="ID_4" LINK="https://example.com" CREATED="1672531200000" MODIFIED="1672531200000">
                 <!-- A note attached to the node -->
-                <richcontent TYPE="NOTE"><html><head><style type="text/css">p{{margin-top:0;margin-bottom:0;}}</style></head><body><p>This is a note for Detail B.</p></body></html></richcontent>
+                <richcontent TYPE="NOTE"><html><head><style type="text/css"></style></head><body><p>This is a note for Detail B.</p></body></html></richcontent>
             </node>
         </node>
         <!-- Second child node -->
@@ -151,6 +153,7 @@ prompt = ChatPromptTemplate.from_template(template)
 
 # Fix for the prompt - ensure the output format matches what the model expects
 # We'll add a specific output parser to handle the streaming response
+
 
 rag_chain = (
     {"context": retriever, "question": RunnablePassthrough()}
