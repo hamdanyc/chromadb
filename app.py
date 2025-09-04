@@ -117,12 +117,14 @@ retriever = db.as_retriever()
 
 template = """<bos><start_of_turn>user\nAnswer the question based only on the following context and extract out a meaningful answer. \
 Please write in full sentences with correct spelling and punctuation. if it makes sense use lists. \
-When ask for mindmap's, use the XML format given in the example. Attach TYPE="NOTE" to the mindmap's root and the siblings node with the short description.\
-Write to the richcontent attribute explaining the context of the elements. \
+When ask for mindmap's, use the XML format given in the example. Attach TYPE="NOTE" to the mindmap's root with short summary of the topic \ 
+Attach TYPE="NOTE" to the mindmap's siblings node with the short description of what, why and how.\
+Use short paragraph in presenting the context of every node. \
 
 <map version="1.0.1">
     <!-- Root node of the mind map -->
     <node TEXT="Main Topic" ID="ID_1" CREATED="1672531200000" MODIFIED="1672531200000" POSITION="left">
+        <richcontent TYPE="NOTE"><html><head><style type="text/css"></style></head><body><p>This is a note fMain Topic.</p></body></html></richcontent>
         <!-- First child node -->
         <node TEXT="Child Topic 1" ID="ID_2" CREATED="1672531200000" MODIFIED="1672531200000" POSITION="right" FOLDED="false">
             <!-- Grandchild node -->
