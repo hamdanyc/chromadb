@@ -6,8 +6,8 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.embeddings import Embeddings
-from dotenv import load_dotenv
 import streamlit as st
+from dotenv import load_dotenv
 import chromadb
 import os
 
@@ -81,6 +81,7 @@ client = chromadb.CloudClient(
 )
 
 collections = client.list_collections()
+total_collections = client.count_collections()
 pdf = [collection.name for collection in collections]
 qs = ["Summarize the text",
       "What data analysis mentioned in the text",
@@ -94,7 +95,7 @@ qs = ["Summarize the text",
       "Highlight important previous studies that related to the text"]
 
 st.title("Knowledge Base")
-
+st.subheader(f"Total: {total_collections} Documents")
 # Create a selectbox to choose a collection
 mt = ""
 selected_collection = st.sidebar.selectbox("Select a collection", pdf)
@@ -118,8 +119,8 @@ retriever = db.as_retriever()
 template = """<bos><start_of_turn>user\nAnswer the question based only on the following context and extract out a meaningful answer. \
 Please write in full sentences with correct spelling and punctuation. if it makes sense use lists. \
 When ask for mindmap's, use the XML format given in the example. Attach TYPE="NOTE" to the mindmap's root with short summary of the topic \ 
-Attach TYPE="NOTE" to the mindmap's siblings node with the short description of what, why and how.\
-Use short paragraph in presenting the context of every node. \
+Attach TYPE="NOTE" to the mindmap's siblings node with the short description of what, why and how?.\
+Use short paragraph ton present the context in every node. \
 
 <map version="1.0.1">
     <!-- Root node of the mind map -->
@@ -175,4 +176,4 @@ if __name__ == "__main__":
     user_question = st.text_input("Ask a question (or close tab to exit): ", value = selected_qs)
     if user_question.lower() == 'quit':
         exit()
-    answer = st.write(ask_question(user_question))
+    answer = st.code(ask_question(user_question), language = "text")
