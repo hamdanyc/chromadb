@@ -13,7 +13,7 @@ import os
 
 load_dotenv()
 os.environ["GROQ_API_KEY"] = os.environ.get('GROQ_API_KEY')
-llm = init_chat_model("llama-3.1-8b-instant", model_provider="groq", temperature=0.3)
+llm = init_chat_model("openai/gpt-oss-20b", model_provider="groq", temperature=0.3)
 
 ef = chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
 
