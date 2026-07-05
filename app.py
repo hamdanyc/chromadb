@@ -1,9 +1,8 @@
-# from chromadb.utils import embedding_functions
-# from langchain_core.output_parsers import StrOutputParser
 from langchain_chroma import Chroma
 from langchain.chat_models import init_chat_model
-from langchain_core.prompts import ChatPromptTemplate
+from langchain.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.embeddings import Embeddings
 import streamlit as st
 from dotenv import load_dotenv
@@ -12,7 +11,7 @@ import os
 
 load_dotenv()
 os.environ["GROQ_API_KEY"] = os.environ.get('GROQ_API_KEY')
-llm = init_chat_model("openai/gpt-oss-20b", model_provider="groq", temperature=0.3)
+llm = init_chat_model("llama-3.1-8b-instant", model_provider="groq", temperature=0.3)
 
 ef = chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
 
