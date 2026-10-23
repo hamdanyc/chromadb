@@ -2,6 +2,8 @@ chromadb>=1.0.20
 dotenv
 langchain-chroma>=0.2.5
 langchain-groq
+langchain-openrouter
 langchain
 langchain-core
-streamlit==1.56.0
+streamlit
+google-genai==1.52.0

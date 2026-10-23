@@ -1,17 +1,25 @@
+# from chromadb.utils import embedding_functions
+# from langchain_core.output_parsers import StrOutputParser
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from langchain_chroma import Chroma
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.embeddings import Embeddings
-import streamlit as st
 from dotenv import load_dotenv
+import streamlit as st
 import chromadb
 import os
 
+st.title("Knowledge Base")
+
 load_dotenv()
-os.environ["GROQ_API_KEY"] = os.environ.get('GROQ_API_KEY')
-llm = init_chat_model("openai/gpt-oss-20b", model_provider="groq", temperature=0.3)
+os.environ["OPENROUTER_API_KEY"] = os.environ.get('OPENROUTE_API_KEY')
+
+@st.cache_resource
+def get_llm():
+    return init_chat_model("nvidia/nemotron-3-ultra-550b-a55b:free", model_provider="openrouter")
+
+llm = get_llm()
 
 ef = chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
 
@@ -27,41 +35,22 @@ class DefChromaEF(Embeddings):
 
 def extract_metadata(collection):
     col = client.get_or_create_collection(collection)
-    # Get metadata fields we need
-    metadata = {
-        "Year": "",
-        "Title": "",
-        "Author": "",
-        "Publication": "",
-        "Publisher": "",
-        "Abstract": ""
-    }
-    
-    # Debugging - Show collection info
-    # st.write(f"Collection name: {collection}")
-    # st.write(f"Collection metadata: {col.metadata}")
-    
-    # Get first document that has metadata
-    results = col.get(where={"page_number": 1})
-    # st.write(f"Metadata query results: {results}")  # Debugging output
-    
-    if results["metadatas"]:
-        # Extract metadata from first document with metadata
-        doc_metadata = results["metadatas"][0]
-        # st.write(f"Raw metadata document: {doc_metadata}")  # Debugging output
-        
-        try:
-            # Directly assign from the metadata dictionary
-            metadata["Title"] = doc_metadata.get("Title", "")
-            metadata["Author"] = doc_metadata.get("Author", "")
-            metadata["Publication"] = doc_metadata.get("Publication", "")
-            metadata["Year"] = doc_metadata.get("Year", "")
-            metadata["Publisher"] = doc_metadata.get("Publisher", "")
-            metadata["Abstract"] = doc_metadata.get("Abstract", "")
-        except Exception as e:
-            st.error(f"Error parsing metadata: {e}")
-            print(f"Error parsing metadata: {e}")
-    
+    page = col.get(where={"page_number": 1}, limit=1, include=["metadatas"])
+    if page["metadatas"]:
+        return page["metadatas"][0] or {}
+    return {}
+
+def load_collection_metadata(collection_names, progress):
+    metadata = {}
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = {executor.submit(extract_metadata, name): name for name in collection_names}
+        for index, future in enumerate(as_completed(futures), start=1):
+            name = futures[future]
+            try:
+                metadata[name] = future.result()
+            except Exception:
+                metadata[name] = {}
+            progress.progress(index / len(collection_names))
     return metadata
     
 # Get list of collections from ChromaDB
@@ -71,17 +60,38 @@ ch_api_key = os.getenv('CHROMA_API_KEY')
 ch_tenant = os.getenv('CHROMA_TENANT')
 ch_database = os.getenv('CHROMA_DATABASE')
 
-# Retrieve Chroma cloud
-client = chromadb.CloudClient(
-    tenant=ch_tenant,
-    database=ch_database,
-    api_key=ch_api_key
-)
+@st.cache_resource
+def get_chroma_client(tenant, database, api_key):
+    return chromadb.CloudClient(
+        tenant=tenant,
+        database=database,
+        api_key=api_key
+    )
 
-collections = client.list_collections()
-total_collections = client.count_collections()
-pdf = [collection.name for collection in collections]
+client = get_chroma_client(ch_tenant, ch_database, ch_api_key)
+
+@st.cache_data(ttl=300)
+def list_collection_names():
+    return [collection.name for collection in client.list_collections()]
+
+with st.spinner("Connecting to collection store..."):
+    pdf = list_collection_names()
+if not pdf:
+    st.info("No collections are available.")
+    st.stop()
+
+collection_names = tuple(pdf)
+if st.session_state.get("collection_names") != collection_names:
+    with st.status(f"Loading details for {len(pdf)} collections...", expanded=False) as status:
+        progress = st.progress(0)
+        metadata_by_collection = load_collection_metadata(collection_names, progress)
+        st.session_state["collection_names"] = collection_names
+        st.session_state["metadata_by_collection"] = metadata_by_collection
+        status.update(label=f"Loaded details for {len(pdf)} collections", state="complete")
+else:
+    metadata_by_collection = st.session_state["metadata_by_collection"]
 qs = ["Summarize the text",
+      "Give the abstract from the article",
       "What data analysis mentioned in the text",
       "What has been studied on this topic?",
       "What are the key findings and conclusions from the text", 
@@ -92,55 +102,29 @@ qs = ["Summarize the text",
       "Give theoretical research framework from the text",
       "Highlight important previous studies that related to the text"]
 
-st.title("Knowledge Base")
-st.subheader(f"Total: {total_collections} Documents")
 # Create a selectbox to choose a collection
 mt = ""
-selected_collection = st.sidebar.selectbox("Select a collection", pdf)
+selected_collection = st.sidebar.selectbox(
+    "Select a collection",
+    pdf,
+    format_func=lambda name: metadata_by_collection[name].get("Title") or name,
+)
 selected_qs = st.sidebar.selectbox("Select a question", qs)
-# st.write(selected_collection)
+selected_metadata = metadata_by_collection[selected_collection]
+document_title = selected_metadata.get("Title") or selected_collection
+author = selected_metadata.get("Author")
+year = selected_metadata.get("Year")
+st.subheader(document_title)
+if author:
+    citation = f"({author}, {year})" if year else f"({author})"
+    st.caption(citation)
 
-# Extract and display metadata
-metadata = extract_metadata(selected_collection)
-
-st.subheader("Document Metadata")
-st.text(f"Title: {metadata['Title']}")
-st.text(f"Author(s): {metadata['Author']}")
-st.text(f"Publication: {metadata['Publication']}")
-st.text(f"Year: {metadata['Year']}")
-st.text(f"Publisher: {metadata['Publisher']}")
-st.text(f"Abstract: {metadata['Abstract']}")
-
-db = Chroma(client=client, collection_name=selected_collection, embedding_function=DefChromaEF(ef))
+db = Chroma(client=client, collection_name=selected_collection)
 retriever = db.as_retriever()
 
 template = """<bos><start_of_turn>user\nAnswer the question based only on the following context and extract out a meaningful answer. \
 Please write in full sentences with correct spelling and punctuation. if it makes sense use lists. \
-When ask for mindmap's, use the XML format given in the example. Attach TYPE="NOTE" to the mindmap's root with short summary of the topic \ 
-Attach TYPE="NOTE" to the mindmap's siblings node with the short description of what, why and how?.\
-Use short paragraph ton present the context in every node. \
-
-<map version="1.0.1">
-    <!-- Root node of the mind map -->
-    <node TEXT="Main Topic" ID="ID_1" CREATED="1672531200000" MODIFIED="1672531200000" POSITION="left">
-        <richcontent TYPE="NOTE"><html><head><style type="text/css"></style></head><body><p>This is a note fMain Topic.</p></body></html></richcontent>
-        <!-- First child node -->
-        <node TEXT="Child Topic 1" ID="ID_2" CREATED="1672531200000" MODIFIED="1672531200000" POSITION="right" FOLDED="false">
-            <!-- Grandchild node -->
-            <node TEXT="Detail A" ID="ID_3" CREATED="1672531200000" MODIFIED="1672531200000">
-                <hook NAME="accessories/plugins/Automatic_Backup.properties" ACTIVE="false"/>
-            </node>
-            <!-- Another grandchild node with a link -->
-            <node TEXT="Detail B" ID="ID_4" LINK="https://example.com" CREATED="1672531200000" MODIFIED="1672531200000">
-                <!-- A note attached to the node -->
-                <richcontent TYPE="NOTE"><html><head><style type="text/css"></style></head><body><p>This is a note for Detail B.</p></body></html></richcontent>
-            </node>
-        </node>
-        <!-- Second child node -->
-        <node TEXT="Child Topic 2" ID="ID_5" CREATED="1672531200000" MODIFIED="1672531200000" POSITION="right" FOLDED="false"/>
-    </node>
-</map> 
-If the context doesn't contain the answer, just respond that you are unable to find an answer.
+If the context doesn't contain the answer, just respond that you are unable to find an answer. \
 
 CONTEXT: {context}
 
@@ -152,26 +136,22 @@ ANSWER:"""
 
 prompt = ChatPromptTemplate.from_template(template)
 
-# Fix for the prompt - ensure the output format matches what the model expects
-# We'll add a specific output parser to handle the streaming response
+answer_chain = prompt | llm
 
-
-rag_chain = (
-    {"context": retriever, "question": RunnablePassthrough()}
-    | prompt
-    | llm
-    | StrOutputParser()
-)
-
-def ask_question(question):
-    response = ""
-
-    for r in rag_chain.stream(question):
-        response += r
-    return response
 
 if __name__ == "__main__":
-    user_question = st.text_input("Ask a question (or close tab to exit): ", value = selected_qs)
-    if user_question.lower() == 'quit':
-        exit()
-    answer = st.code(ask_question(user_question), language = "text")
+    with st.form("question_form"):
+        user_question = st.text_input("Ask a question", value=selected_qs)
+        submitted = st.form_submit_button("Search")
+    if submitted and user_question.strip():
+        with st.status("Searching the selected collection...", expanded=False) as search_status:
+            documents = retriever.invoke(user_question)
+            search_status.update(label=f"Retrieved {len(documents)} passages", state="complete")
+        with st.status("Generating answer...", expanded=True) as answer_status:
+            try:
+                context = "\n\n".join(document.page_content for document in documents)
+                st.write_stream(answer_chain.stream({"context": context, "question": user_question}))
+                answer_status.update(label="Answer complete", state="complete")
+            except Exception as error:
+                answer_status.update(label="Answer generation failed", state="error")
+                st.error(f"Could not complete the answer: {error}")
